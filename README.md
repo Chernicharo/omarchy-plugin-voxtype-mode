@@ -16,14 +16,27 @@ Shows whether the [voxtype](https://voxtype.io) dictation daemon is running on *
 ## The panel
 
 - **Which mode is active**, the model it loaded, and how much VRAM is held versus free.
-- **Both modes side by side**, each labelled with the model it *would* load — so you can
-  see that GPU means `large-v3-turbo` before committing to the switch. Click either to go
-  there directly, rather than toggling and hoping.
+- **Both modes side by side.** Click either to go there directly, rather than toggling and
+  hoping.
+- **A model picker per mode.** Lists the Whisper models actually installed on the machine,
+  so you can give CPU mode `small` and GPU mode `large-v3-turbo` without editing TOML.
+  Changing the model of the mode you are *in* restarts the daemon, because voxtype only
+  reads the model at startup — the panel does that for you rather than leaving the config
+  and the running daemon disagreeing.
+- **Language**, applying to both modes. One control on purpose: dictating in Portuguese on
+  the GPU and English on the CPU would be a trap, not a feature. Per-mode language is still
+  reachable by editing the configs.
+- **Edit the config** (󰏫 next to each model picker) opens that mode's `config.<mode>.toml`
+  in your Omarchy default editor, via `omarchy-launch-config-editor`.
 - **Notify on switch** — off by default. The bar icon already reports the switch, so a
   notification on top of it is redundant; turn it on for when the bar is not where you are
   looking.
 
-Keyboard navigable: arrows or `j`/`k` move, `enter` activates, `esc` closes.
+Arrows or `j`/`k` move between the mode rows and the notify toggle, `enter` activates, `esc`
+closes. The dropdowns and the edit buttons are mouse-driven.
+
+Everything the panel shows is re-read when it opens, so a config you edited by hand is never
+shown stale.
 
 ## Why
 
@@ -42,7 +55,7 @@ CLI on your `PATH`:
 
 | Dependency | Why | License |
 |---|---|---|
-| [`voxtype-mode`](https://github.com/Chernicharo/voxtype-mode), recent enough to support `status --json` | Provides `voxtype-mode status --json`, `toggle`, `cpu` and `gpu` — the only commands this widget ever runs | MIT |
+| [`voxtype-mode`](https://github.com/Chernicharo/voxtype-mode), recent enough to support `models` and `set-model` | Provides every command this widget runs: `status --json`, `models --json`, `toggle`, `cpu`, `gpu`, `set-model`, `set-language`, `config` | MIT |
 | [voxtype](https://voxtype.io) | The dictation daemon being switched | see upstream |
 | Omarchy Quattro (4.x) | The Quickshell bar host that loads the plugin | — |
 
@@ -55,11 +68,11 @@ git clone https://github.com/Chernicharo/voxtype-mode ~/personal/voxtype-mode
 cd ~/personal/voxtype-mode && ./install.sh
 ```
 
-Verify it before installing the widget — if this prints JSON with a `models` object, the
-widget will work:
+Verify it before installing the widget — if both of these work, so will the panel:
 
 ```bash
-voxtype-mode status --json
+voxtype-mode status --json    # needs a "models" object and a "language" field
+voxtype-mode models           # the models installed on this machine
 ```
 
 ## Install
@@ -69,7 +82,8 @@ omarchy plugin add https://github.com/Chernicharo/omarchy-plugin-voxtype-mode --
 omarchy restart shell
 ```
 
-Pick a bar section when prompted, or place it afterwards:
+Run interactively (no `--yes`) and Omarchy asks which bar section to put it in, defaulting
+to **right** — the `defaultSection` this plugin declares. To place or move it afterwards:
 
 ```bash
 omarchy bar move io.github.chernicharo.voxtype-mode --section right
@@ -100,6 +114,9 @@ Two routes, so you can bind the switch, the panel, or both:
 | `omarchy-shell io.github.chernicharo.voxtype-mode toggle` | Open/close the panel |
 | `omarchy-shell io.github.chernicharo.voxtype-mode setMode gpu` | Go to a specific mode |
 | `omarchy-shell io.github.chernicharo.voxtype-mode toggleNotify` | Flip the notification setting |
+| `omarchy-shell io.github.chernicharo.voxtype-mode setModel gpu small` | Change a mode's model |
+| `omarchy-shell io.github.chernicharo.voxtype-mode setLanguage en` | Change the dictation language |
+| `omarchy-shell io.github.chernicharo.voxtype-mode editConfig gpu` | Open that config in your editor |
 
 `toggle` means open/close the popup, matching every other Omarchy panel — the mode switch
 is `toggleMode`.
@@ -139,7 +156,10 @@ the current mode.
 - **No sudo, no system files, no shared state.** Everything runs through the systemd *user*
   service, and the active mode lives in `$XDG_RUNTIME_DIR` (per-user, wiped on logout) —
   not in `/tmp`.
-- **Settings persist** to `~/.config/omarchy/shell.json`, under this widget's bar entry.
+- **Settings persist** in two places, by design: `notifyOnSwitch` is a widget setting and
+  lives in `~/.config/omarchy/shell.json`; model and language are voxtype's own settings and
+  are written to `~/.config/voxtype/config.{cpu,gpu}.toml`, only ever in response to an
+  explicit choice in the panel.
 
 ## License
 

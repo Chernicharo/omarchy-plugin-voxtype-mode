@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.chernicharo.voxtype-mode",
   "name": "Voxtype Mode",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": "Roberto Chernicharo",
   "license": "MIT",
-  "description": "Bar widget and panel for the voxtype dictation daemon: see and switch between CPU and GPU mode, with the model each one loads.",
+  "description": "Bar widget and panel for the voxtype dictation daemon: switch CPU/GPU mode, pick the model for each, set the dictation language, and open the configs in your editor.",
   "homepage": "https://github.com/Chernicharo/omarchy-plugin-voxtype-mode",
   "kinds": [
     "bar-widget"

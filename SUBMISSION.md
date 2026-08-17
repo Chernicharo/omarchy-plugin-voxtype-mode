@@ -44,21 +44,28 @@ dictation
 Bar widget front end for the voxtype-mode CLI (MIT, same author):
 https://github.com/Chernicharo/voxtype-mode
 
-It runs only that CLI — `voxtype-mode status --json` to read state on a 30s poll, and
-`toggle`/`cpu`/`gpu` to switch — plus `notify-send` when the optional notification setting
-is on. Subprocesses are spawned as argv arrays, never as shell strings, so a model name
+It runs only that CLI — `status --json` and `models --json` to read, `toggle`/`cpu`/`gpu`
+to switch, `set-model`/`set-language` to configure — plus `notify-send` when the optional
+notification setting is on, and `omarchy-launch-config-editor` for the "edit config" button,
+which opens the user's own configured editor. Subprocesses are spawned as argv arrays, never as shell strings, so a model name
 coming from a user-edited config file cannot be reinterpreted as shell syntax.
 
-No sudo, no system files, no network access. The only thing it writes is its own entry in
-~/.config/omarchy/shell.json, through the shell's own settings API. The switched daemon is
+No sudo, no system files, no network access.
+
+It writes in exactly two places, both only in response to an explicit choice in the panel:
+its own entry in ~/.config/omarchy/shell.json (the notification preference, through the
+shell's own settings API), and the `model` / `language` keys of
+~/.config/voxtype/config.{cpu,gpu}.toml — the files the user is configuring when they use
+the model and language pickers. Nothing is written on load, on poll, or on open. The switched daemon is
 a systemd *user* service, and the active mode is stored in $XDG_RUNTIME_DIR (per-user,
 wiped on logout) rather than a shared path in /tmp.
 
 If the CLI is not installed the widget hides itself instead of rendering a broken icon.
 
-Bar widget plus a panel (mode picker showing the model each mode loads, and an opt-in
-notification setting). IPC routes: `toggle` opens the panel, `toggleMode` switches, plus
-`setMode`, `toggleNotify` and `refresh`.
+Bar widget plus a panel: mode picker, a per-mode Whisper model picker limited to models
+already installed on the machine, a dictation language picker, an editor shortcut, and an
+opt-in notification setting. IPC routes: `toggle` opens the panel, `toggleMode` switches,
+plus `setMode`, `setModel`, `setLanguage`, `toggleNotify`, `editConfig` and `refresh`.
 
 Verified on Omarchy 4.0.0, voxtype 0.7.5, Hyprland, RTX 4060. `omarchy plugin validate`
 exits 0, and the install path was tested end to end with `omarchy plugin add <url>

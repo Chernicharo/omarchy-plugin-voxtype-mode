@@ -26,9 +26,11 @@ Panel {
   property string cpuModel: ""
   property string gpuModel: ""
   property string service: ""
+  property string language: ""
   property var vramMb: null
   property var gpuFreeMb: null
   property bool switching: false
+  property var availableModels: []
 
   readonly property bool gpu: mode === "gpu"
   readonly property bool known: mode !== ""
@@ -72,6 +74,47 @@ Panel {
     if (!statusProc.running) statusProc.running = true
   }
 
+  // The config files are editable outside this panel — by the editor shortcut
+  // below, or by hand — so re-read on every open instead of trusting the last
+  // 30s poll. Opening the panel is exactly when staleness would be visible.
+  onOpenedChanged: if (opened) { refresh(); loadModels() }
+
+  function loadModels() {
+    if (!modelsProc.running) modelsProc.running = true
+  }
+
+  function setModelFor(which, name) {
+    if (switching || name === "" || name === modelFor(which)) return
+    // Changing the active mode's model restarts the daemon, so it goes through
+    // the same busy state as a mode switch.
+    if (which === mode) switching = true
+    setModelProc.command = ["voxtype-mode", "set-model", which, name]
+    setModelProc.running = true
+  }
+
+  // One control for both modes on purpose: a setup that dictates in Portuguese
+  // on the GPU and English on the CPU would be a trap, not a feature. Per-mode
+  // language is still reachable by editing the configs.
+  readonly property var languages: ["auto", "en", "pt", "es", "fr", "de", "it", "nl", "pl", "ru", "ja", "ko", "zh"]
+
+  function setLanguage(lang) {
+    if (switching || lang === "" || lang === language) return
+    // Writing both configs restarts the daemon for the active one, so this
+    // goes through the same busy state as a mode switch.
+    switching = true
+    setLangProc.command = ["voxtype-mode", "set-language", "all", lang]
+    setLangProc.running = true
+  }
+
+  function editConfig(which) {
+    // omarchy-launch-config-editor honours the user's configured default
+    // editor and shows a toast naming the file.
+    editProc.command = ["bash", "-lc",
+                        "omarchy-launch-config-editor \"$(voxtype-mode config " + which + ")\""]
+    editProc.running = true
+    close()
+  }
+
   function setMode(next) {
     if (switching || toggleProc.running || next === mode) return
     switching = true
@@ -93,6 +136,7 @@ Panel {
       root.mode = String(data.mode || "")
       root.model = String(data.model || "")
       root.service = String(data.service || "")
+      root.language = String(data.language || "")
       var models = data.models || {}
       root.cpuModel = String(models.cpu || "")
       root.gpuModel = String(models.gpu || "")
@@ -183,6 +227,9 @@ Panel {
     function toggleMode(): void { root.toggleMode() }
     function setMode(mode: string): void { root.setMode(mode === "gpu" ? "gpu" : "cpu") }
     function toggleNotify(): void { root.toggleNotify() }
+    function setModel(mode: string, name: string): void { root.setModelFor(mode === "gpu" ? "gpu" : "cpu", name) }
+    function setLanguage(lang: string): void { root.setLanguage(lang) }
+    function editConfig(mode: string): void { root.editConfig(mode === "gpu" ? "gpu" : "cpu") }
     function refresh(): void { root.refresh() }
   }
 
@@ -209,6 +256,38 @@ Panel {
   Process {
     id: notifyProc
     command: ["true"]
+  }
+
+  Process {
+    id: modelsProc
+    command: ["voxtype-mode", "models", "--json"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try {
+          var list = JSON.parse(String(text || "[]"))
+          root.availableModels = (list instanceof Array) ? list : []
+        } catch (e) {
+          root.availableModels = []
+        }
+      }
+    }
+  }
+
+  Process {
+    id: setModelProc
+    command: ["true"]
+    onExited: root.finishSwitch()
+  }
+
+  Process {
+    id: editProc
+    command: ["true"]
+  }
+
+  Process {
+    id: setLangProc
+    command: ["true"]
+    onExited: root.finishSwitch()
   }
 
   // The refresh fired straight after a switch races the daemon's own settling,
@@ -366,7 +445,7 @@ Panel {
             readonly property bool hasCursor: root.cursorActive && root.modeIndex === index
 
             width: column.width
-            height: Style.space(46)
+            height: Style.space(74)
             radius: Style.cornerRadius
             color: hasCursor
               ? (root.bar ? Style.selectedFillFor(root.bar.foreground, Color.accent) : "transparent")
@@ -374,11 +453,24 @@ Panel {
                  ? (root.bar ? Style.hoverFillFor(root.bar.foreground, Color.accent) : "transparent")
                  : "transparent")
 
+            // Declared before the controls below so the dropdown and the edit
+            // button sit on top of it and get their own clicks — everything
+            // else in the row selects the mode.
+            MouseArea {
+              id: rowMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onEntered: { root.cursorActive = true; root.modeIndex = row.index }
+              onClicked: root.setMode(row.modelData.key)
+            }
+
             Text {
               id: rowIcon
               anchors.left: parent.left
               anchors.leftMargin: Style.space(10)
-              anchors.verticalCenter: parent.verticalCenter
+              anchors.top: parent.top
+              anchors.topMargin: Style.space(11)
               text: root.iconFor(row.modelData.key)
               color: row.isActive
                 ? (row.modelData.key === "gpu" ? (root.bar ? root.bar.urgent : Color.urgent) : root.foreground)
@@ -387,38 +479,35 @@ Panel {
               font.pixelSize: Style.font.icon
             }
 
-            Column {
+            Text {
+              id: rowTitle
               anchors.left: rowIcon.right
               anchors.leftMargin: Style.space(12)
+              anchors.verticalCenter: rowIcon.verticalCenter
+              text: row.modelData.label + " mode"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+            }
+
+            Text {
+              anchors.left: rowTitle.right
+              anchors.leftMargin: Style.space(8)
               anchors.right: rowMark.left
-              anchors.rightMargin: Style.space(8)
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.space(1)
-
-              Text {
-                text: row.modelData.label + " mode"
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.body
-                elide: Text.ElideRight
-                width: parent.width
-              }
-
-              Text {
-                text: root.modelFor(row.modelData.key) + " · " + row.modelData.note
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                elide: Text.ElideRight
-                width: parent.width
-              }
+              anchors.rightMargin: Style.space(6)
+              anchors.verticalCenter: rowTitle.verticalCenter
+              text: "· " + row.modelData.note
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              elide: Text.ElideRight
             }
 
             Text {
               id: rowMark
               anchors.right: parent.right
               anchors.rightMargin: Style.space(12)
-              anchors.verticalCenter: parent.verticalCenter
+              anchors.verticalCenter: rowTitle.verticalCenter
               // A check for the active mode, an hourglass on the one being
               // loaded, nothing on the idle one.
               text: root.switching && row.isActive ? "󰔟" : (row.isActive ? "󰄬" : "")
@@ -427,13 +516,31 @@ Panel {
               font.pixelSize: Style.font.body
             }
 
-            MouseArea {
-              id: rowMouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onEntered: { root.cursorActive = true; root.modeIndex = row.index }
-              onClicked: root.setMode(row.modelData.key)
+            // Per-mode model picker. Changing the active mode's model restarts
+            // the daemon; changing the other one is just a config write.
+            Dropdown {
+              id: modelPick
+              anchors.left: rowTitle.left
+              anchors.top: rowTitle.bottom
+              anchors.topMargin: Style.space(8)
+              width: Style.space(186)
+              showLabel: false
+              fontFamily: root.fontFamily
+              options: root.availableModels
+              value: root.modelFor(row.modelData.key)
+              onChanged: function (value) { root.setModelFor(row.modelData.key, value) }
+            }
+
+            PanelActionButton {
+              anchors.left: modelPick.right
+              anchors.leftMargin: Style.space(8)
+              anchors.verticalCenter: modelPick.verticalCenter
+              iconText: "󰏫"
+              tooltipText: "Edit " + row.modelData.label + " config"
+              foreground: root.dim
+              hoverColor: root.foreground
+              fontFamily: root.fontFamily
+              onClicked: root.editConfig(row.modelData.key)
             }
           }
         }
@@ -511,6 +618,57 @@ Panel {
             onClicked: function (mouse) {
               if (mouse.x < notifySwitch.x) root.toggleNotify()
             }
+          }
+        }
+
+        // ---------- Language ----------
+        Item {
+          width: column.width
+          height: Style.space(46)
+
+          Column {
+            anchors.left: parent.left
+            anchors.leftMargin: Style.space(10)
+            anchors.right: langPick.left
+            anchors.rightMargin: Style.space(10)
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(1)
+
+            Text {
+              text: "Language"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+              elide: Text.ElideRight
+              width: parent.width
+            }
+
+            Text {
+              text: "applies to both modes"
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              elide: Text.ElideRight
+              width: parent.width
+            }
+          }
+
+          Dropdown {
+            id: langPick
+            anchors.right: parent.right
+            anchors.rightMargin: Style.space(12)
+            anchors.verticalCenter: parent.verticalCenter
+            width: Style.space(104)
+            showLabel: false
+            fontFamily: root.fontFamily
+            // Whatever the config already says stays selectable even when it is
+            // not in the shortlist, so opening the panel cannot silently
+            // rewrite a language this list does not happen to carry.
+            options: root.languages.indexOf(root.language) === -1 && root.language !== ""
+                     ? [root.language].concat(root.languages)
+                     : root.languages
+            value: root.language
+            onChanged: function (value) { root.setLanguage(value) }
           }
         }
       }

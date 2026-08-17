@@ -35,6 +35,11 @@ Panel {
   readonly property bool gpu: mode === "gpu"
   readonly property bool known: mode !== ""
 
+  // A picker over a single option is just a label that lies about being
+  // interactive. Someone running one small model for both modes gets no
+  // dropdown at all.
+  readonly property bool canPickModel: availableModels.length > 1
+
   // Off by default: the bar icon already reports the switch, so a notification
   // on top of it is redundant. Opt in when the bar is not where you are looking.
   readonly property bool notifyOnSwitch: setting("notifyOnSwitch", false) === true
@@ -356,7 +361,7 @@ Panel {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        spacing: Style.space(12)
+        spacing: Style.space(9)
 
         // ---------- Hero: icon · title/status · VRAM ----------
         Item {
@@ -379,7 +384,8 @@ Panel {
             id: heroLabels
             anchors.left: heroIcon.right
             anchors.leftMargin: Style.space(14)
-            anchors.right: parent.right
+            anchors.right: configButton.left
+            anchors.rightMargin: Style.space(8)
             anchors.verticalCenter: parent.verticalCenter
             spacing: Style.space(2)
 
@@ -418,6 +424,22 @@ Panel {
               width: parent.width
             }
           }
+
+          // One entry point for voxtype's own settings, rather than a button
+          // per mode: the per-mode configs differ only in model and language,
+          // and both of those already have a control of their own below.
+          PanelActionButton {
+            id: configButton
+            anchors.right: parent.right
+            anchors.rightMargin: Style.space(4)
+            anchors.verticalCenter: parent.verticalCenter
+            iconText: "󰒓"
+            tooltipText: "Edit " + (root.gpu ? "GPU" : "CPU") + " config"
+            foreground: root.dim
+            hoverColor: root.foreground
+            fontFamily: root.fontFamily
+            onClicked: root.editConfig(root.mode)
+          }
         }
 
         PanelSeparator { width: parent.width }
@@ -445,7 +467,10 @@ Panel {
             readonly property bool hasCursor: root.cursorActive && root.modeIndex === index
 
             width: column.width
-            height: Style.space(74)
+            // Tall enough for the title line plus the picker, and no taller.
+            // With a single model installed the picker collapses to a label,
+            // so the row shrinks with it.
+            height: Style.space(root.canPickModel ? 58 : 40)
             radius: Style.cornerRadius
             color: hasCursor
               ? (root.bar ? Style.selectedFillFor(root.bar.foreground, Color.accent) : "transparent")
@@ -468,9 +493,9 @@ Panel {
             Text {
               id: rowIcon
               anchors.left: parent.left
-              anchors.leftMargin: Style.space(10)
+              anchors.leftMargin: Style.space(8)
               anchors.top: parent.top
-              anchors.topMargin: Style.space(11)
+              anchors.topMargin: Style.space(7)
               text: root.iconFor(row.modelData.key)
               color: row.isActive
                 ? (row.modelData.key === "gpu" ? (root.bar ? root.bar.urgent : Color.urgent) : root.foreground)
@@ -506,7 +531,7 @@ Panel {
             Text {
               id: rowMark
               anchors.right: parent.right
-              anchors.rightMargin: Style.space(12)
+              anchors.rightMargin: Style.space(10)
               anchors.verticalCenter: rowTitle.verticalCenter
               // A check for the active mode, an hourglass on the one being
               // loaded, nothing on the idle one.
@@ -518,11 +543,16 @@ Panel {
 
             // Per-mode model picker. Changing the active mode's model restarts
             // the daemon; changing the other one is just a config write.
+            //
+            // With one model installed there is nothing to pick, so the control
+            // would be a dropdown that can only reselect what it already shows.
+            // It becomes a plain label instead.
             Dropdown {
               id: modelPick
+              visible: root.canPickModel
               anchors.left: rowTitle.left
               anchors.top: rowTitle.bottom
-              anchors.topMargin: Style.space(8)
+              anchors.topMargin: Style.space(4)
               width: Style.space(186)
               showLabel: false
               fontFamily: root.fontFamily
@@ -531,16 +561,15 @@ Panel {
               onChanged: function (value) { root.setModelFor(row.modelData.key, value) }
             }
 
-            PanelActionButton {
-              anchors.left: modelPick.right
-              anchors.leftMargin: Style.space(8)
-              anchors.verticalCenter: modelPick.verticalCenter
-              iconText: "󰏫"
-              tooltipText: "Edit " + row.modelData.label + " config"
-              foreground: root.dim
-              hoverColor: root.foreground
-              fontFamily: root.fontFamily
-              onClicked: root.editConfig(row.modelData.key)
+            Text {
+              visible: !root.canPickModel
+              anchors.left: rowTitle.left
+              anchors.top: rowTitle.bottom
+              anchors.topMargin: Style.space(2)
+              text: root.modelFor(row.modelData.key)
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
             }
           }
         }
@@ -560,7 +589,7 @@ Panel {
           readonly property bool hasCursor: root.cursorActive && root.modeIndex === 2
 
           width: column.width
-          height: Style.space(46)
+          height: Style.space(40)
           radius: Style.cornerRadius
           color: hasCursor
             ? (root.bar ? Style.selectedFillFor(root.bar.foreground, Color.accent) : "transparent")
@@ -624,7 +653,7 @@ Panel {
         // ---------- Language ----------
         Item {
           width: column.width
-          height: Style.space(46)
+          height: Style.space(40)
 
           Column {
             anchors.left: parent.left

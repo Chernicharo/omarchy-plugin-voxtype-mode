@@ -22,12 +22,13 @@ Shows whether the [voxtype](https://voxtype.io) dictation daemon is running on *
   so you can give CPU mode `small` and GPU mode `large-v3-turbo` without editing TOML.
   Changing the model of the mode you are *in* restarts the daemon, because voxtype only
   reads the model at startup — the panel does that for you rather than leaving the config
-  and the running daemon disagreeing.
+  and the running daemon disagreeing. With a single model installed there is nothing to
+  choose, so the picker collapses to a plain label and the rows shrink with it.
 - **Language**, applying to both modes. One control on purpose: dictating in Portuguese on
   the GPU and English on the CPU would be a trap, not a feature. Per-mode language is still
   reachable by editing the configs.
-- **Edit the config** (󰏫 next to each model picker) opens that mode's `config.<mode>.toml`
-  in your Omarchy default editor, via `omarchy-launch-config-editor`.
+- **󰒓 in the header** opens the active mode's `config.<mode>.toml` in your Omarchy default
+  editor, via `omarchy-launch-config-editor`.
 - **Notify on switch** — off by default. The bar icon already reports the switch, so a
   notification on top of it is redundant; turn it on for when the bar is not where you are
   looking.

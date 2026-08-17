@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
@@ -435,7 +436,7 @@ Panel {
             anchors.verticalCenter: parent.verticalCenter
             iconText: "󰒓"
             tooltipText: "Edit " + (root.gpu ? "GPU" : "CPU") + " config"
-            foreground: root.dim
+            foreground: root.foreground
             hoverColor: root.foreground
             fontFamily: root.fontFamily
             onClicked: root.editConfig(root.mode)
@@ -470,7 +471,7 @@ Panel {
             // Tall enough for the title line plus the picker, and no taller.
             // With a single model installed the picker collapses to a label,
             // so the row shrinks with it.
-            height: Style.space(root.canPickModel ? 58 : 40)
+            height: Style.space(root.canPickModel ? 66 : 48)
             radius: Style.cornerRadius
             color: hasCursor
               ? (root.bar ? Style.selectedFillFor(root.bar.foreground, Color.accent) : "transparent")
@@ -490,86 +491,99 @@ Panel {
               onClicked: root.setMode(row.modelData.key)
             }
 
-            Text {
-              id: rowIcon
+            // One centred RowLayout instead of individually top-anchored
+            // pieces: the icon and the check then sit on the row's middle
+            // whatever the content height is, which is what stops the taller
+            // picker rows from leaving dead space under them.
+            RowLayout {
               anchors.left: parent.left
-              anchors.leftMargin: Style.space(8)
-              anchors.top: parent.top
-              anchors.topMargin: Style.space(7)
-              text: root.iconFor(row.modelData.key)
-              color: row.isActive
-                ? (row.modelData.key === "gpu" ? (root.bar ? root.bar.urgent : Color.urgent) : root.foreground)
-                : root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.icon
-            }
-
-            Text {
-              id: rowTitle
-              anchors.left: rowIcon.right
-              anchors.leftMargin: Style.space(12)
-              anchors.verticalCenter: rowIcon.verticalCenter
-              text: row.modelData.label + " mode"
-              color: root.foreground
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.body
-            }
-
-            Text {
-              anchors.left: rowTitle.right
-              anchors.leftMargin: Style.space(8)
-              anchors.right: rowMark.left
-              anchors.rightMargin: Style.space(6)
-              anchors.verticalCenter: rowTitle.verticalCenter
-              text: "· " + row.modelData.note
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-              elide: Text.ElideRight
-            }
-
-            Text {
-              id: rowMark
               anchors.right: parent.right
-              anchors.rightMargin: Style.space(10)
-              anchors.verticalCenter: rowTitle.verticalCenter
-              // A check for the active mode, an hourglass on the one being
-              // loaded, nothing on the idle one.
-              text: root.switching && row.isActive ? "󰔟" : (row.isActive ? "󰄬" : "")
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.body
-            }
+              anchors.verticalCenter: parent.verticalCenter
+              anchors.leftMargin: Style.space(10)
+              anchors.rightMargin: Style.space(8)
+              spacing: Style.space(10)
 
-            // Per-mode model picker. Changing the active mode's model restarts
-            // the daemon; changing the other one is just a config write.
-            //
-            // With one model installed there is nothing to pick, so the control
-            // would be a dropdown that can only reselect what it already shows.
-            // It becomes a plain label instead.
-            Dropdown {
-              id: modelPick
-              visible: root.canPickModel
-              anchors.left: rowTitle.left
-              anchors.top: rowTitle.bottom
-              anchors.topMargin: Style.space(4)
-              width: Style.space(186)
-              showLabel: false
-              fontFamily: root.fontFamily
-              options: root.availableModels
-              value: root.modelFor(row.modelData.key)
-              onChanged: function (value) { root.setModelFor(row.modelData.key, value) }
-            }
+              Text {
+                text: root.iconFor(row.modelData.key)
+                color: row.isActive
+                  ? (row.modelData.key === "gpu" ? (root.bar ? root.bar.urgent : Color.urgent) : root.foreground)
+                  : root.dim
+                font.family: root.fontFamily
+                // These Material glyphs paint small inside their em box, so
+                // matching the text's nominal size makes them look shrunken
+                // next to it. A fixed column width also keeps both rows'
+                // labels on the same left edge despite differing glyph widths.
+                font.pixelSize: Style.font.display
+                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredWidth: Style.space(26)
+                Layout.alignment: Qt.AlignVCenter
+              }
 
-            Text {
-              visible: !root.canPickModel
-              anchors.left: rowTitle.left
-              anchors.top: rowTitle.bottom
-              anchors.topMargin: Style.space(2)
-              text: root.modelFor(row.modelData.key)
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
+              ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Style.space(3)
+
+                RowLayout {
+                  Layout.fillWidth: true
+                  spacing: Style.space(6)
+
+                  Text {
+                    text: row.modelData.label + " mode"
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                  }
+
+                  Text {
+                    Layout.fillWidth: true
+                    text: "· " + row.modelData.note
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    elide: Text.ElideRight
+                  }
+                }
+
+                // Per-mode model picker. Changing the active mode's model
+                // restarts the daemon; changing the other one is just a config
+                // write.
+                //
+                // With one model installed there is nothing to pick, so the
+                // control would be a dropdown that can only reselect what it
+                // already shows. It becomes a plain label instead.
+                Dropdown {
+                  visible: root.canPickModel
+                  Layout.preferredWidth: Style.space(186)
+                  Layout.preferredHeight: visible ? implicitHeight : 0
+                  showLabel: false
+                  fontFamily: root.fontFamily
+                  options: root.availableModels
+                  value: root.modelFor(row.modelData.key)
+                  onChanged: function (value) { root.setModelFor(row.modelData.key, value) }
+                }
+
+                Text {
+                  visible: !root.canPickModel
+                  Layout.fillWidth: true
+                  text: root.modelFor(row.modelData.key)
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  elide: Text.ElideRight
+                }
+              }
+
+              Text {
+                // A check for the active mode, an hourglass on the one being
+                // loaded, nothing on the idle one.
+                text: root.switching && row.isActive ? "󰔟" : (row.isActive ? "󰄬" : "")
+                color: row.isActive ? root.foreground : root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.iconLarge
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: Style.space(20)
+                horizontalAlignment: Text.AlignHCenter
+              }
             }
           }
         }
@@ -589,7 +603,7 @@ Panel {
           readonly property bool hasCursor: root.cursorActive && root.modeIndex === 2
 
           width: column.width
-          height: Style.space(40)
+          height: Style.space(44)
           radius: Style.cornerRadius
           color: hasCursor
             ? (root.bar ? Style.selectedFillFor(root.bar.foreground, Color.accent) : "transparent")
@@ -603,7 +617,7 @@ Panel {
             anchors.right: notifySwitch.left
             anchors.rightMargin: Style.space(10)
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(1)
+            spacing: Style.space(2)
 
             Text {
               text: "Notify on switch"
@@ -619,7 +633,7 @@ Panel {
                                         : "silent — bar icon only"
               color: root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
+              font.pixelSize: Style.font.caption
               elide: Text.ElideRight
               width: parent.width
             }
@@ -653,7 +667,7 @@ Panel {
         // ---------- Language ----------
         Item {
           width: column.width
-          height: Style.space(40)
+          height: Style.space(44)
 
           Column {
             anchors.left: parent.left
@@ -661,7 +675,7 @@ Panel {
             anchors.right: langPick.left
             anchors.rightMargin: Style.space(10)
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(1)
+            spacing: Style.space(2)
 
             Text {
               text: "Language"
@@ -676,7 +690,7 @@ Panel {
               text: "applies to both modes"
               color: root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
+              font.pixelSize: Style.font.caption
               elide: Text.ElideRight
               width: parent.width
             }

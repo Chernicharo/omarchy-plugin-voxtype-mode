@@ -65,17 +65,18 @@ CLI on your `PATH`:
 Install the CLI first:
 
 ```bash
-git clone https://github.com/Chernicharo/voxtype-mode ~/personal/voxtype-mode
-cd ~/personal/voxtype-mode
-git checkout de9c2ef95addd6df889d274b61dee6b22956ee04   # v1.0.0
-./install.sh
+git clone https://github.com/Chernicharo/voxtype-mode ~/personal/voxtype-mode &&
+  git -C ~/personal/voxtype-mode checkout --detach de9c2ef95addd6df889d274b61dee6b22956ee04 &&
+  ~/personal/voxtype-mode/install.sh
 ```
 
-The commit is pinned rather than left on `main` on purpose: `install.sh` executes code from
-that clone, and a branch or a tag can be moved after anyone has reviewed it. The SHA above is
-the exact revision this widget was built and tested against. To follow the CLI later, run
-`git checkout main && git pull` in that clone — a deliberate step, rather than something that
-changes under you.
+That is `v1.0.0` of the CLI, and the commit is pinned rather than left on `main` on purpose:
+`install.sh` executes code from that clone, and a branch or a tag can be moved after anyone
+has reviewed it. The single `&&` chain is part of the same guarantee — if the checkout fails,
+the installer never runs against whatever the branch happens to point at.
+
+To follow the CLI later, run `git checkout main && git pull` in that clone and re-run
+`./install.sh` — a deliberate step, rather than something that changes under you.
 
 Verify it before installing the widget — if both of these work, so will the panel:
 

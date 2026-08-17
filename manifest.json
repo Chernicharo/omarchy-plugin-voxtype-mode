@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.chernicharo.voxtype-mode",
+  "name": "Voxtype Mode",
+  "version": "1.0.0",
+  "author": "Roberto Chernicharo",
+  "license": "MIT",
+  "description": "Bar widget that shows whether the voxtype dictation daemon is running on CPU or GPU, and switches between them on click.",
+  "homepage": "https://github.com/Chernicharo/omarchy-plugin-voxtype-mode",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Voxtype mode",
+    "description": "CPU/GPU mode for the voxtype dictation daemon",
+    "category": "Hardware",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

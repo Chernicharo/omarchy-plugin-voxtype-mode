@@ -34,7 +34,7 @@ Shows whether the [voxtype](https://voxtype.io) dictation daemon is running on *
   looking.
 
 Arrows or `j`/`k` move between the mode rows and the notify toggle, `enter` activates, `esc`
-closes. The dropdowns and the edit buttons are mouse-driven.
+closes. The dropdowns and the gear are mouse-driven.
 
 Everything the panel shows is re-read when it opens, so a config you edited by hand is never
 shown stale.

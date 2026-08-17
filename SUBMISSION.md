@@ -45,10 +45,14 @@ Bar widget front end for the voxtype-mode CLI (MIT, same author):
 https://github.com/Chernicharo/voxtype-mode
 
 It runs only that CLI — `status --json` and `models --json` to read, `toggle`/`cpu`/`gpu`
-to switch, `set-model`/`set-language` to configure — plus `notify-send` when the optional
-notification setting is on, and `omarchy-launch-config-editor` for the "edit config" button,
-which opens the user's own configured editor. Subprocesses are spawned as argv arrays, never as shell strings, so a model name
-coming from a user-edited config file cannot be reinterpreted as shell syntax.
+to switch, `set-model`/`set-language` to configure, `config` to locate a config file —
+plus `notify-send` when the optional notification setting is on, and
+`omarchy-launch-config-editor` for the settings button, which opens the user's own
+configured editor.
+
+Every subprocess is spawned as an argument vector; the plugin never builds a shell command
+string. Model names and config paths therefore cannot be reinterpreted as shell syntax, no
+matter what a user-edited config file contains.
 
 No sudo, no system files, no network access.
 
@@ -56,9 +60,10 @@ It writes in exactly two places, both only in response to an explicit choice in 
 its own entry in ~/.config/omarchy/shell.json (the notification preference, through the
 shell's own settings API), and the `model` / `language` keys of
 ~/.config/voxtype/config.{cpu,gpu}.toml — the files the user is configuring when they use
-the model and language pickers. Nothing is written on load, on poll, or on open. The switched daemon is
-a systemd *user* service, and the active mode is stored in $XDG_RUNTIME_DIR (per-user,
-wiped on logout) rather than a shared path in /tmp.
+the model and language pickers. Nothing is written on load, on poll, or on open.
+
+The switched daemon is a systemd *user* service, and the active mode is stored in
+$XDG_RUNTIME_DIR (per-user, wiped on logout) rather than a shared path in /tmp.
 
 If the CLI is not installed the widget hides itself instead of rendering a broken icon.
 
@@ -79,7 +84,7 @@ exits 0, and the install path was tested end to end with `omarchy plugin add <ur
 | 1 | Repository is public with installation/removal instructions | Yes — README has both `omarchy plugin add` and the `disable`/`remove` pair |
 | 2 | License and dependencies documented | Yes — MIT in `LICENSE`; the Requirements table names every external dependency and its license |
 | 3 | Ownership/permission confirmed | Yes — sole author; the preview image is a screenshot of this widget on the author's own machine |
-| 4 | Plugin respects user configuration | Yes — writes nothing outside its plugin folder; the mode it changes is the CLI's own runtime state |
+| 4 | Plugin respects user configuration | Yes, with disclosure — it writes `notifyOnSwitch` to its own `shell.json` entry, and the `model` / `language` keys of `~/.config/voxtype/config.{cpu,gpu}.toml`. Both only in response to an explicit choice in the panel; nothing is written on load, poll or open, and no other key in those files is touched |
 | 5 | Approval is listing-only, not a security review | Understood |
 
 ---

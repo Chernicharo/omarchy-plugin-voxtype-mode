@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.chernicharo.voxtype-mode",
   "name": "Voxtype Mode",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "author": "Roberto Chernicharo",
   "license": "MIT",
   "description": "Bar widget and panel for the voxtype dictation daemon: switch CPU/GPU mode, pick the model for each, set the dictation language, and open the configs in your editor.",

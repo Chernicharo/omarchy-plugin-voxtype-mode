@@ -112,13 +112,23 @@ Panel {
     setLangProc.running = true
   }
 
+  // Two steps rather than one `bash -c '... $(voxtype-mode config X)'`: asking
+  // the CLI for the path, then launching the editor with that path as an
+  // argument, keeps every subprocess in this file a plain argument vector with
+  // no shell in between to reinterpret anything.
   function editConfig(which) {
+    configPathProc.command = ["voxtype-mode", "config", which]
+    configPathProc.running = true
+    close()
+  }
+
+  function launchEditor(path) {
+    var file = String(path || "").trim()
+    if (file === "") return
     // omarchy-launch-config-editor honours the user's configured default
     // editor and shows a toast naming the file.
-    editProc.command = ["bash", "-lc",
-                        "omarchy-launch-config-editor \"$(voxtype-mode config " + which + ")\""]
+    editProc.command = ["omarchy-launch-config-editor", file]
     editProc.running = true
-    close()
   }
 
   function setMode(next) {
@@ -283,6 +293,14 @@ Panel {
     id: setModelProc
     command: ["true"]
     onExited: root.finishSwitch()
+  }
+
+  Process {
+    id: configPathProc
+    command: ["true"]
+    stdout: StdioCollector {
+      onStreamFinished: root.launchEditor(text)
+    }
   }
 
   Process {

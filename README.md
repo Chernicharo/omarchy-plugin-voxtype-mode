@@ -62,6 +62,13 @@ Pick a bar section when prompted, or place it afterwards:
 omarchy bar move io.github.chernicharo.voxtype-mode --section right
 ```
 
+The widget appears immediately. If you also want the [keybinding](#keybinding), restart the
+shell once — the IPC route registers on a full start, not on the hot reload:
+
+```bash
+omarchy restart shell
+```
+
 ## Remove
 
 ```bash
@@ -86,12 +93,47 @@ active mode. Uninstall the CLI separately with its own `./uninstall.sh`.
   service, and the active mode lives in `$XDG_RUNTIME_DIR` (per-user, wiped on logout) —
   not in `/tmp`.
 
-## Pairs well with a keybinding
+## Keybinding
 
-The CLI documents a matching Hyprland binding (`SUPER + CTRL + SHIFT + X`) that sits next
-to Omarchy's own voxtype bindings on `X`. The widget and the keybinding stay in sync
-because both go through the same CLI. See the
-[voxtype-mode README](https://github.com/Chernicharo/voxtype-mode#keybinding-omarchy--hyprland).
+The widget exposes an IPC route, so a key can drive the same toggle a click does — and the
+bar icon reports the progress, instead of a notification covering whatever you are doing:
+
+```bash
+omarchy-shell io.github.chernicharo.voxtype-mode toggle
+```
+
+**Suggested key: `SUPER + CTRL + SHIFT + X`.** Omarchy already keeps voxtype on `X`
+(`SUPER + CTRL + X` toggles dictation, `F9` is push-to-talk), so adding `SHIFT` reads as
+"toggle *how* dictation runs" on the same key. Nothing in stock Omarchy claims the combo.
+
+Add it to `~/.config/hypr/bindings.lua`:
+
+```lua
+o.bind("SUPER + CTRL + SHIFT + X", "Toggle voxtype CPU/GPU mode",
+  [[bash -c 'omarchy-shell io.github.chernicharo.voxtype-mode toggle 2>/dev/null || notify-send -a voxtype "voxtype" "$(voxtype-mode toggle 2>&1)"']])
+```
+
+Hyprland reloads on save; confirm with `hyprctl configerrors` and
+`omarchy menu keybindings --print`.
+
+> **The IPC target only registers on a full shell start**, not on the hot reload that
+> `omarchy plugin add` triggers. Until you run `omarchy restart shell` once, the target does
+> not exist. That is exactly what the `||` fallback is for: it calls the CLI directly and
+> notifies, so the key works in the gap and in any session where the shell is not running.
+
+Widget, keybinding and terminal all end up in the same CLI, so they cannot disagree about
+the current mode.
+
+An `omarchy-shell io.github.chernicharo.voxtype-mode refresh` route exists too, if you want
+to force a re-read after changing the mode by some other means.
+
+### Older setups
+
+For an Omarchy before the Lua config, the same binding in `bindings.conf` form:
+
+```ini
+bind = SUPER CTRL SHIFT, X, exec, bash -c 'omarchy-shell io.github.chernicharo.voxtype-mode toggle 2>/dev/null || notify-send -a voxtype "voxtype" "$(voxtype-mode toggle 2>&1)"'
+```
 
 ## License
 

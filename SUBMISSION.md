@@ -52,6 +52,10 @@ logout) rather than a shared path in /tmp.
 
 If the CLI is not installed the widget hides itself instead of rendering a broken icon.
 
+Bar widget plus a panel (mode picker showing the model each mode loads, and an opt-in
+notification setting). IPC routes: `toggle` opens the panel, `toggleMode` switches, plus
+`setMode`, `toggleNotify` and `refresh`.
+
 Verified on Omarchy 4.0.0, voxtype 0.7.5, Hyprland, RTX 4060. `omarchy plugin validate`
 exits 0, and the install path was tested end to end with `omarchy plugin add <url>
 --enable` from a clean state.

@@ -3,6 +3,8 @@
 Shows whether the [voxtype](https://voxtype.io) dictation daemon is running on **CPU** or
 **GPU**, and switches between them on click.
 
+![The widget in both states](preview.png)
+
 | State | Icon | Meaning |
 |---|---|---|
 | CPU mode | 󰻠 | Small model on the CPU. Zero VRAM held — the gaming state. |

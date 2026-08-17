@@ -67,6 +67,25 @@ BarWidget {
     return parts.join("  ·  ") + "\nClick to switch to " + (gpu ? "CPU" : "GPU")
   }
 
+  // Lets a keybinding drive the same toggle the click does, so a switch fired
+  // from the keyboard still shows its progress on the icon.
+  //
+  // Note the asymmetry: `toggle` deliberately does NOT broadcast. A bar surface
+  // exists per monitor, so broadcasting would spawn one `voxtype-mode toggle`
+  // per screen — on two monitors the second switch would undo the first. The
+  // switch runs once here; it is the resulting refresh that fans out.
+  IpcHandler {
+    target: "io.github.chernicharo.voxtype-mode"
+
+    function toggle(): void {
+      root.toggle()
+    }
+
+    function refresh(): void {
+      root.broadcast("refresh")
+    }
+  }
+
   Process {
     id: statusProc
     command: ["voxtype-mode", "status", "--json"]
@@ -80,7 +99,8 @@ BarWidget {
     command: ["voxtype-mode", "toggle"]
     onExited: {
       root.switching = false
-      root.refresh()
+      // Every monitor's copy has to re-read, not just the one that was clicked.
+      root.broadcast("refresh")
     }
   }
 

@@ -44,11 +44,15 @@ dictation
 Bar widget front end for the voxtype-mode CLI (MIT, same author):
 https://github.com/Chernicharo/voxtype-mode
 
-It runs exactly two commands, both from that CLI — `voxtype-mode status --json` to read
-state on a 30s poll, and `voxtype-mode toggle` on click. No sudo, no system files, no
-network access, no writes outside its own plugin folder. The switched daemon is a systemd
-*user* service, and the active mode is stored in $XDG_RUNTIME_DIR (per-user, wiped on
-logout) rather than a shared path in /tmp.
+It runs only that CLI — `voxtype-mode status --json` to read state on a 30s poll, and
+`toggle`/`cpu`/`gpu` to switch — plus `notify-send` when the optional notification setting
+is on. Subprocesses are spawned as argv arrays, never as shell strings, so a model name
+coming from a user-edited config file cannot be reinterpreted as shell syntax.
+
+No sudo, no system files, no network access. The only thing it writes is its own entry in
+~/.config/omarchy/shell.json, through the shell's own settings API. The switched daemon is
+a systemd *user* service, and the active mode is stored in $XDG_RUNTIME_DIR (per-user,
+wiped on logout) rather than a shared path in /tmp.
 
 If the CLI is not installed the widget hides itself instead of rendering a broken icon.
 

@@ -29,7 +29,7 @@ CLI on your `PATH`:
 
 | Dependency | Why | License |
 |---|---|---|
-| [`voxtype-mode`](https://github.com/Chernicharo/voxtype-mode) ≥ 1.1 | Provides `voxtype-mode status --json` and `voxtype-mode toggle`, which are the only two commands this widget runs | MIT |
+| [`voxtype-mode`](https://github.com/Chernicharo/voxtype-mode), recent enough to support `status --json` | Provides `voxtype-mode status --json` and `voxtype-mode toggle` — the only two commands this widget ever runs | MIT |
 | [voxtype](https://voxtype.io) | The dictation daemon being switched | see upstream |
 | Omarchy Quattro (4.x) | The Quickshell bar host that loads the plugin | — |
 
